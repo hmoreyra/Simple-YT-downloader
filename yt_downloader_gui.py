@@ -144,9 +144,9 @@ def download_audio():
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
             # Llamar al hilo principal para actualizar la GUI
-            app.after(0, on_download_complete, True)
+            app.after(0, on_download_complete, True)  # type: ignore
         except Exception as e:
-            app.after(0, on_download_complete, False, str(e))
+            app.after(0, on_download_complete, False, str(e))  # type: ignore
 
     # Iniciar la descarga en un hilo separado para que no se congele la interfaz
     threading.Thread(target=run_download, daemon=True).start()
@@ -172,11 +172,11 @@ def check_for_updates():
                 latest_version = data.get('tag_name', '')
                 
                 if latest_version and latest_version != CURRENT_VERSION:
-                    app.after(0, notify_update, latest_version, data.get('html_url'))
+                    app.after(0, notify_update, latest_version, data.get('html_url'))  # type: ignore
                 else:
-                    app.after(0, show_updated_message)
+                    app.after(0, show_updated_message)  # type: ignore
         except Exception as e:
-            app.after(0, show_error_message, str(e))
+            app.after(0, show_error_message, str(e))  # type: ignore
             
     threading.Thread(target=run_check, daemon=True).start()
 
