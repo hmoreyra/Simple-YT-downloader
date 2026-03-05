@@ -1,0 +1,28 @@
+# Entornos virtuales
+.venv/
+venv/
+ENV/
+env/
+
+# Archivos de caché y compilación de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Directorios y archivos de empaquetado (PyInstaller)
+build/
+dist/
+*.spec
+
+# Archivos descargados y binarios pesados (FFmpeg, instaladores)
+ffmpeg.exe
+ffprobe.exe
+ffmpeg-master-*/
+*.zip
+python-*.exe
+
+# Configuraciones de IDE y OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
