@@ -3,7 +3,6 @@
 Un descargador simple y ligero con interfaz gráfica para bajar videos y canciones (MP3/MP4) de YouTube. 
 Está construido en Python utilizando **yt-dlp** para las descargas y **Tkinter** para la interfaz visual.
 
-![Simple YT Downloader Logo](logo.png)
 
 ## Características principales 
 - Descarga rápida de audio en formato **MP3** (con calidad de hasta 192kbps).
@@ -15,9 +14,7 @@ Está construido en Python utilizando **yt-dlp** para las descargas y **Tkinter*
 
 ## ¿Cómo descargarlo y utilizarlo?
 
-¡No hace falta que instales nada raro ni que sepas de programación! Solo tenés que seguir estos pasos:
-
-1. Dirígete a la sección de **[Releases](https://github.com/hmoreyra/Simple-YT-downloader/releases)** a la derecha de esta página (o haz clic en el botón "Releases").
+1. Dirigirse a la sección de **[Releases](https://github.com/hmoreyra/Simple-YT-downloader/releases)** a la derecha de esta página (o hacé clic en el botón "Releases").
 2. En la versión más reciente (ej: `v1.0.0`), descarga el archivo correspondiente a tu sistema operativo:
    - Si usás Windows, descarga `yt_downloader_gui.exe`.
    - Si usás Linux, descarga `yt_downloader_gui` directamente.
