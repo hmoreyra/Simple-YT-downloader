@@ -10,7 +10,7 @@ import webbrowser
 
 # --- CONFIGURACIÓN DE ACTUALIZACIONES ---
 GITHUB_REPO = "hmoreyra/Simple-YT-downloader"
-CURRENT_VERSION = "v1.0.0"
+CURRENT_VERSION = "v1.1.0"
 # ----------------------------------------
 
 def get_config_path():
@@ -126,6 +126,8 @@ def download_audio():
                 }],
                 'quiet': True,
                 'no_warnings': True,
+                'source_address': '0.0.0.0', # Fuerza a usar IPv4 para evitar cuellos de botella de red
+                'concurrent_fragment_downloads': 5, # Descarga fragmentos en paralelo (Acelera muchísimo en Windows)
             }
         else: # MP4
             ydl_opts = {
@@ -140,6 +142,29 @@ def download_audio():
         if ffmpeg_loc:
             ydl_opts['ffmpeg_location'] = ffmpeg_loc # type: ignore
 
+        def progress_hook(d):
+            if d['status'] == 'downloading':
+                try:
+                    total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
+                    downloaded = d.get('downloaded_bytes', 0)
+                    if total > 0:
+                        percent = (downloaded / total) * 100
+                        app.after(0, lambda p=percent: progress_bar.config(value=p))  # type: ignore
+                        
+                        speed = d.get('speed', 0)
+                        if speed:
+                            speed_mb = speed / 1024 / 1024
+                            app.after(0, lambda p=percent, s=speed_mb: status_var.set(f"Descargando... {p:.1f}% ({s:.2f} MB/s)"))  # type: ignore
+                        else:
+                            app.after(0, lambda p=percent: status_var.set(f"Descargando... {p:.1f}%"))  # type: ignore
+                except Exception:
+                    pass
+            elif d['status'] == 'finished':
+                app.after(0, lambda: progress_bar.config(value=100))  # type: ignore
+                app.after(0, lambda: status_var.set("Procesando archivo... (Esto puede tardar)"))  # type: ignore
+
+        ydl_opts['progress_hooks'] = [progress_hook]  # type: ignore
+
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
@@ -153,6 +178,7 @@ def download_audio():
 
 def on_download_complete(success, error_msg=""):
     download_btn.config(state=tk.NORMAL)
+    progress_bar.config(value=0) # Reiniciar la barra de progreso
     if success:
         status_var.set("¡Descarga completa!")
         messagebox.showinfo("Éxito", f"El archivo se descargó correctamente en formato {format_var.get()}.")
@@ -167,7 +193,13 @@ def check_for_updates():
         try:
             url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 YTDownloader'})
-            with urllib.request.urlopen(req, timeout=5) as response:
+            
+            # Crear un contexto SSL sin verificación para evitar el error CERTIFICATE_VERIFY_FAILED 
+            # al ejecutar el programa empaquetado (.exe) en Windows
+            import ssl
+            context = ssl._create_unverified_context()
+            
+            with urllib.request.urlopen(req, timeout=5, context=context) as response:
                 data = json.loads(response.read().decode('utf-8'))
                 latest_version = data.get('tag_name', '')
                 
@@ -198,7 +230,7 @@ def show_error_message(err):
 # Configuración de la ventana principal
 app = tk.Tk()
 app.title(f"Descargador de YouTube ({CURRENT_VERSION})")
-app.geometry("520x300")
+app.geometry("520x340")
 app.resizable(False, False)
 
 # Configurar icono si existe
@@ -250,16 +282,19 @@ make_context_menu(path_entry)
 tk.Button(entry_frame, text="Buscar", command=browse_folder).pack(side=tk.LEFT)
 
 tk.Label(app, text="Formato:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
-format_combo = ttk.Combobox(app, textvariable=format_var, values=["MP3", "MP4"], state="readonly", width=10)
+format_combo = ttk.Combobox(app, textvariable=format_var, values=["Audio (.mp3)", "Video (.mp4)"], state="readonly", width=12)
 format_combo.grid(row=2, column=1, padx=10, pady=5, sticky="w")
 format_combo.bind("<<ComboboxSelected>>", lambda e: save_config(path_var.get(), format_var.get()))
 
 download_btn = tk.Button(app, text="Descargar", command=download_audio, bg="#4CAF50", fg="white", font=("Helvetica", 10, "bold"), width=30)
 download_btn.grid(row=3, column=0, columnspan=2, pady=15)
 
-tk.Label(app, textvariable=status_var, fg="#555555").grid(row=4, column=0, columnspan=2)
+progress_bar = ttk.Progressbar(app, orient=tk.HORIZONTAL, length=400, mode='determinate')
+progress_bar.grid(row=4, column=0, columnspan=2, pady=(0, 10))
+
+tk.Label(app, textvariable=status_var, fg="#555555").grid(row=5, column=0, columnspan=2)
 
 update_btn = tk.Button(app, text="Buscar Actualizaciones", command=check_for_updates, font=("Helvetica", 8), bg="#e0e0e0")
-update_btn.grid(row=5, column=0, columnspan=2, pady=5)
+update_btn.grid(row=6, column=0, columnspan=2, pady=5)
 
 app.mainloop()

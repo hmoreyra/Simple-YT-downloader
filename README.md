@@ -5,7 +5,7 @@ Está construido en Python utilizando **yt-dlp** para las descargas y **Tkinter*
 
 ![Simple YT Downloader Logo](logo.png)
 
-## Características principales ✨
+## Características principales 
 - Descarga rápida de audio en formato **MP3** (con calidad de hasta 192kbps).
 - Descarga de video en formato **MP4** con la mejor calidad disponible.
 - Selección automática inteligente para la carpeta de descargas (por defecto tu carpeta nativa de "Descargas" o "Downloads").
@@ -13,7 +13,7 @@ Está construido en Python utilizando **yt-dlp** para las descargas y **Tkinter*
 - Funcionalidad de copiar, pegar y cortar en las cajas de texto a través de un menú de clic derecho.
 - Multiplataforma: Disponible para **Windows** y **Linux**.
 
-## ¿Cómo descargarlo y utilizarlo? 🚀
+## ¿Cómo descargarlo y utilizarlo?
 
 ¡No hace falta que instales nada raro ni que sepas de programación! Solo tenés que seguir estos pasos:
 
@@ -26,7 +26,7 @@ Está construido en Python utilizando **yt-dlp** para las descargas y **Tkinter*
 
 *(Aclaración para usuarios de Windows: el archivo descarga "ffmpeg.exe" incrustado en su interior, que es una herramienta necesaria para convertir la música, por lo que puede que tarde un par de segundos extra la primera vez que inicia en la PC).*
 
-## Para desarrolladores 💻
+## Para desarrolladores
 
 Si querés compilar tu propia versión o ver el código fuente:
 1. Cloná o descargá este repositorio.
