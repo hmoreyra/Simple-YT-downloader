@@ -45,7 +45,7 @@ def get_default_downloads_path():
 def load_config():
     config_file = get_config_path()
     default_save_path = get_default_downloads_path()
-    default_config = {'save_path': default_save_path, 'format': 'MP3'}
+    default_config = {'save_path': default_save_path, 'format': 'Audio (.mp3)'}
     if os.path.exists(config_file):
         try:
             with open(config_file, 'r', encoding='utf-8') as f:
@@ -55,7 +55,7 @@ def load_config():
                     save_dir = default_save_path
                 return {
                     'save_path': save_dir,
-                    'format': data.get('format', 'MP3')
+                    'format': data.get('format', 'Audio (.mp3)')
                 }
         except:
             pass
@@ -115,7 +115,7 @@ def download_audio():
         ffmpeg_loc = get_ffmpeg_path()
         selected_format = format_var.get()
         
-        if selected_format == "MP3":
+        if selected_format == "Audio (.mp3)" or selected_format == "MP3":
             ydl_opts = {
                 'format': 'bestaudio/best',
                 'outtmpl': os.path.join(save_path, '%(title)s.%(ext)s'),
@@ -230,8 +230,9 @@ def show_error_message(err):
 # Configuración de la ventana principal
 app = tk.Tk()
 app.title(f"Descargador de YouTube ({CURRENT_VERSION})")
-app.geometry("520x340")
-app.resizable(False, False)
+app.geometry("580x400")
+app.minsize(550, 400)
+app.resizable(True, True)
 
 # Configurar icono si existe
 icon_path = get_resource_path('logo.png')
@@ -267,34 +268,42 @@ def make_context_menu(widget):
         
     widget.bind("<Button-3>", show_menu)
 
+# Frame principal para centrar y organizar los elementos
+main_frame = tk.Frame(app, padx=30, pady=20)
+main_frame.pack(fill=tk.BOTH, expand=True)
+
+# Configurar la columna 1 para que se expanda dinámicamente
+main_frame.columnconfigure(1, weight=1)
+
 # Elementos de la UI
-tk.Label(app, text="URL del Video:").grid(row=0, column=0, padx=10, pady=15, sticky="w")
-url_entry = tk.Entry(app, textvariable=url_var, width=45)
-url_entry.grid(row=0, column=1, padx=10, pady=15, sticky="w")
+tk.Label(main_frame, text="URL del Video:").grid(row=0, column=0, padx=(0, 10), pady=15, sticky="e")
+url_entry = tk.Entry(main_frame, textvariable=url_var)
+url_entry.grid(row=0, column=1, pady=15, sticky="ew")
 make_context_menu(url_entry)
 
-tk.Label(app, text="Carpeta:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
-entry_frame = tk.Frame(app)
-entry_frame.grid(row=1, column=1, padx=10, pady=5, sticky="w")
-path_entry = tk.Entry(entry_frame, textvariable=path_var, width=33)
-path_entry.pack(side=tk.LEFT, padx=(0, 5))
+tk.Label(main_frame, text="Carpeta:").grid(row=1, column=0, padx=(0, 10), pady=10, sticky="e")
+entry_frame = tk.Frame(main_frame)
+entry_frame.grid(row=1, column=1, pady=10, sticky="ew")
+entry_frame.columnconfigure(0, weight=1)  # Hace que el entry de ruta ocupe el mayor espacio posible
+path_entry = tk.Entry(entry_frame, textvariable=path_var)
+path_entry.grid(row=0, column=0, sticky="ew", padx=(0, 10))
 make_context_menu(path_entry)
-tk.Button(entry_frame, text="Buscar", command=browse_folder).pack(side=tk.LEFT)
+tk.Button(entry_frame, text="Buscar", command=browse_folder).grid(row=0, column=1)
 
-tk.Label(app, text="Formato:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
-format_combo = ttk.Combobox(app, textvariable=format_var, values=["Audio (.mp3)", "Video (.mp4)"], state="readonly", width=12)
-format_combo.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+tk.Label(main_frame, text="Formato:").grid(row=2, column=0, padx=(0, 10), pady=10, sticky="e")
+format_combo = ttk.Combobox(main_frame, textvariable=format_var, values=["Audio (.mp3)", "Video (.mp4)"], state="readonly", width=15)
+format_combo.grid(row=2, column=1, pady=10, sticky="w")
 format_combo.bind("<<ComboboxSelected>>", lambda e: save_config(path_var.get(), format_var.get()))
 
-download_btn = tk.Button(app, text="Descargar", command=download_audio, bg="#4CAF50", fg="white", font=("Helvetica", 10, "bold"), width=30)
-download_btn.grid(row=3, column=0, columnspan=2, pady=15)
+download_btn = tk.Button(main_frame, text="Descargar", command=download_audio, bg="#4CAF50", fg="white", font=("Helvetica", 11, "bold"), cursor="hand2")
+download_btn.grid(row=3, column=0, columnspan=2, pady=25, sticky="ew", ipady=8)
 
-progress_bar = ttk.Progressbar(app, orient=tk.HORIZONTAL, length=400, mode='determinate')
-progress_bar.grid(row=4, column=0, columnspan=2, pady=(0, 10))
+progress_bar = ttk.Progressbar(main_frame, orient=tk.HORIZONTAL, mode='determinate')
+progress_bar.grid(row=4, column=0, columnspan=2, pady=(0, 10), sticky="ew")
 
-tk.Label(app, textvariable=status_var, fg="#555555").grid(row=5, column=0, columnspan=2)
+tk.Label(main_frame, textvariable=status_var, fg="#555555").grid(row=5, column=0, columnspan=2, pady=5)
 
-update_btn = tk.Button(app, text="Buscar Actualizaciones", command=check_for_updates, font=("Helvetica", 8), bg="#e0e0e0")
-update_btn.grid(row=6, column=0, columnspan=2, pady=5)
+update_btn = tk.Button(main_frame, text="Buscar Actualizaciones", command=check_for_updates, font=("Helvetica", 9), bg="#e0e0e0", cursor="hand2")
+update_btn.grid(row=6, column=0, columnspan=2, pady=10)
 
 app.mainloop()
