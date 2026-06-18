@@ -17,7 +17,7 @@ Está construido en Python utilizando **yt-dlp** para las descargas y **Tkinter*
 1. Dirigirse a la sección de **[Releases](https://github.com/hmoreyra/Simple-YT-downloader/releases)** a la derecha de esta página (o hacé clic en el botón "Releases").
 2. En la versión más reciente (ej: `v1.0.0`), descarga el archivo correspondiente a tu sistema operativo:
    - Si usás Windows, descarga `yt_downloader_gui.exe`.
-   - Si usás Linux, descarga `yt_downloader_gui` directamente.
+   - Si usás Linux, descarga `yt_downloader_gui` directamente. PD: Se necesita tener instalado ffmpeg para poder usar la app.
 3. Hacé doble clic sobre el archivo descargado para abrir el programa. ¡Eso es todo!
 4. Pegá la URL de cualquier video de YouTube, elegí si querés solo el audio (MP3) o el video completo (MP4), y hacé clic en **Descargar**.
 
