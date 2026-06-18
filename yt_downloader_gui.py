@@ -10,7 +10,7 @@ import webbrowser
 
 # --- CONFIGURACIÓN DE ACTUALIZACIONES ---
 GITHUB_REPO = "hmoreyra/Simple-YT-downloader"
-CURRENT_VERSION = "v1.1.1"
+CURRENT_VERSION = "v1.1.2"
 # ----------------------------------------
 
 def get_config_path():
@@ -131,7 +131,7 @@ def download_audio():
             }
         else: # MP4
             ydl_opts = {
-                'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                'format': 'bv*+ba/b',
                 'outtmpl': os.path.join(save_path, '%(title)s.%(ext)s'),
                 'merge_output_format': 'mp4',
                 'quiet': True,
