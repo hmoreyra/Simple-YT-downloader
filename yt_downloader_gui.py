@@ -10,7 +10,7 @@ import webbrowser
 
 # --- CONFIGURACIÓN DE ACTUALIZACIONES ---
 GITHUB_REPO = "hmoreyra/Simple-YT-downloader"
-CURRENT_VERSION = "v1.1.2"
+CURRENT_VERSION = "v1.2.0"
 # ----------------------------------------
 
 def get_config_path():
@@ -45,7 +45,7 @@ def get_default_downloads_path():
 def load_config():
     config_file = get_config_path()
     default_save_path = get_default_downloads_path()
-    default_config = {'save_path': default_save_path, 'format': 'Audio (.mp3)'}
+    default_config = {'save_path': default_save_path, 'format': 'Audio (.mp3)', 'compress': False, 'compress_level': 'Medio (Equilibrado)', 'resolution': 'Máxima', 'quality': 'Alta'}
     if os.path.exists(config_file):
         try:
             with open(config_file, 'r', encoding='utf-8') as f:
@@ -55,17 +55,21 @@ def load_config():
                     save_dir = default_save_path
                 return {
                     'save_path': save_dir,
-                    'format': data.get('format', 'Audio (.mp3)')
+                    'format': data.get('format', 'Audio (.mp3)'),
+                    'compress': data.get('compress', False),
+                    'compress_level': data.get('compress_level', 'Medio (Equilibrado)'),
+                    'resolution': data.get('resolution', 'Máxima'),
+                    'quality': data.get('quality', 'Alta')
                 }
         except:
             pass
     return default_config
 
-def save_config(path, format_choice):
+def save_config(path, format_choice, compress=False, compress_level="Medio (Equilibrado)", resolution="Máxima", quality="Alta"):
     config_file = get_config_path()
     try:
         with open(config_file, 'w', encoding='utf-8') as f:
-            json.dump({'save_path': path, 'format': format_choice}, f)
+            json.dump({'save_path': path, 'format': format_choice, 'compress': compress, 'compress_level': compress_level, 'resolution': resolution, 'quality': quality}, f)
     except:
         pass
 
@@ -87,7 +91,7 @@ def browse_folder():
     folder_path = filedialog.askdirectory()
     if folder_path:
         path_var.set(folder_path)
-        save_config(folder_path, format_var.get())
+        save_config(folder_path, format_var.get(), compress_var.get(), compress_level_var.get(), res_var.get(), quality_var.get())
 
 def download_audio():
     url = url_var.get().strip()
@@ -105,7 +109,7 @@ def download_audio():
         return
 
     # Guardar en config en caso de que lo haya escrito a mano
-    save_config(save_path, format_var.get())
+    save_config(save_path, format_var.get(), compress_var.get(), compress_level_var.get(), res_var.get(), quality_var.get())
 
     # Deshabilitar el botón durante la descarga
     download_btn.config(state=tk.DISABLED)
@@ -114,29 +118,109 @@ def download_audio():
     def run_download():
         ffmpeg_loc = get_ffmpeg_path()
         selected_format = format_var.get()
+        quality_choice = quality_var.get()
         
-        if selected_format == "Audio (.mp3)" or selected_format == "MP3":
+        if quality_choice == "Máxima":
+            audio_format = 'bestaudio/best'
+            mp3_q = '320'
+            post_args = {}
+        elif quality_choice == "Alta":
+            audio_format = 'bestaudio/best'
+            mp3_q = '192'
+            post_args = {}
+        elif quality_choice == "Media":
+            audio_format = 'bestaudio/best'
+            mp3_q = '128'
+            post_args = {}
+        elif quality_choice == "Baja":
+            audio_format = 'worstaudio/bestaudio/worst'
+            mp3_q = '64'
+            post_args = {
+                'ExtractAudio': ['-b:a', '64k'],
+                'Merger': ['-c:a', 'aac', '-b:a', '64k']
+            }
+        else: # Mínima (32k Mono)
+            audio_format = 'worstaudio/bestaudio/worst'
+            mp3_q = '32'
+            post_args = {
+                'ExtractAudio': ['-ac', '1', '-ar', '22050', '-b:a', '32k'],
+                'Merger': ['-c:a', 'aac', '-b:a', '32k', '-ac', '1', '-ar', '22050']
+            }
+
+        if "Audio" in selected_format:
+            codec = 'mp3'
+            if "opus" in selected_format.lower():
+                codec = 'opus'
+            elif "m4a" in selected_format.lower():
+                codec = 'm4a'
+
             ydl_opts = {
-                'format': 'bestaudio/best',
+                'format': audio_format,
                 'outtmpl': os.path.join(save_path, '%(title)s.%(ext)s'),
                 'postprocessors': [{
                     'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': '192',
+                    'preferredcodec': codec,
                 }],
                 'quiet': True,
                 'no_warnings': True,
-                'source_address': '0.0.0.0', # Fuerza a usar IPv4 para evitar cuellos de botella de red
-                'concurrent_fragment_downloads': 5, # Descarga fragmentos en paralelo (Acelera muchísimo en Windows)
+                'nocheckcertificate': True,
+                'geo_bypass': True,
+                'source_address': '0.0.0.0',
+                'concurrent_fragment_downloads': 5,
             }
+            if codec == 'mp3':
+                ydl_opts['postprocessors'][0]['preferredquality'] = mp3_q
         else: # MP4
+            res_choice = res_var.get()
+            if res_choice == "Máxima":
+                format_str = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best'
+            else:
+                height = res_choice.replace('p', '')
+                format_str = f'bestvideo[height<={height}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={height}]+bestaudio/best[height<={height}]/best'
+
             ydl_opts = {
-                'format': 'bv*+ba/b',
+                'format': format_str,
                 'outtmpl': os.path.join(save_path, '%(title)s.%(ext)s'),
                 'merge_output_format': 'mp4',
                 'quiet': True,
                 'no_warnings': True,
+                'nocheckcertificate': True,
+                'geo_bypass': True,
+                'source_address': '0.0.0.0',
+                'concurrent_fragment_downloads': 5,
             }
+            if selected_format == "Video (.mp4)" and compress_var.get():
+                level = compress_level_var.get()
+                if "Ligero" in level:
+                    crf, preset = '23', 'fast'
+                elif "Fuerte" in level:
+                    crf, preset = '32', 'slow'
+                else:
+                    crf, preset = '28', 'medium'
+                
+                if quality_choice == "Mínima (32k Mono)":
+                    audio_bitrate = '32k'
+                elif quality_choice == "Baja":
+                    audio_bitrate = '64k'
+                elif quality_choice == "Media":
+                    audio_bitrate = '128k'
+                elif quality_choice == "Alta":
+                    audio_bitrate = '192k'
+                else:
+                    audio_bitrate = '320k'
+
+                args_list = [
+                    '-c:v', 'libx264',
+                    '-crf', crf,
+                    '-preset', preset,
+                    '-c:a', 'aac',
+                    '-b:a', audio_bitrate
+                ]
+                if quality_choice == "Mínima (32k Mono)":
+                    args_list.extend(['-ac', '1', '-ar', '22050'])
+                ydl_opts['postprocessor_args'] = args_list
+            elif post_args:
+                ydl_opts['postprocessor_args'] = post_args
 
         # Si el script se ejecuta como un archivo empaquetado .exe, le indicamos dónde está el ffmpeg incrustado
         if ffmpeg_loc:
@@ -230,8 +314,8 @@ def show_error_message(err):
 # Configuración de la ventana principal
 app = tk.Tk()
 app.title(f"Descargador de YouTube ({CURRENT_VERSION})")
-app.geometry("580x400")
-app.minsize(550, 400)
+app.geometry("680x460")
+app.minsize(680, 460)
 app.resizable(True, True)
 
 # Configurar icono si existe
@@ -254,6 +338,10 @@ path_var = tk.StringVar()
 path_var.set(config_data['save_path'])
 format_var = tk.StringVar()
 format_var.set(config_data['format'])
+compress_var = tk.BooleanVar(value=config_data.get('compress', False))
+compress_level_var = tk.StringVar(value=config_data.get('compress_level', 'Medio (Equilibrado)'))
+res_var = tk.StringVar(value=config_data.get('resolution', 'Máxima'))
+quality_var = tk.StringVar(value=config_data.get('quality', 'Alta'))
 status_var = tk.StringVar()
 status_var.set("Listo")
 
@@ -291,19 +379,128 @@ make_context_menu(path_entry)
 tk.Button(entry_frame, text="Buscar", command=browse_folder).grid(row=0, column=1)
 
 tk.Label(main_frame, text="Formato:").grid(row=2, column=0, padx=(0, 10), pady=10, sticky="e")
-format_combo = ttk.Combobox(main_frame, textvariable=format_var, values=["Audio (.mp3)", "Video (.mp4)"], state="readonly", width=15)
-format_combo.grid(row=2, column=1, pady=10, sticky="w")
-format_combo.bind("<<ComboboxSelected>>", lambda e: save_config(path_var.get(), format_var.get()))
+
+format_frame = tk.Frame(main_frame)
+format_frame.grid(row=2, column=1, pady=10, sticky="w")
+
+format_combo = ttk.Combobox(format_frame, textvariable=format_var, values=["Audio (.mp3)", "Audio (.opus)", "Audio (.m4a)", "Video (.mp4)"], state="readonly", width=15)
+format_combo.pack(side=tk.LEFT)
+
+tk.Label(format_frame, text="Res Máx:").pack(side=tk.LEFT, padx=(15, 5))
+res_combo = ttk.Combobox(format_frame, textvariable=res_var, values=["Máxima", "1440p", "1080p", "720p", "480p", "360p", "240p", "144p"], state="readonly", width=10)
+res_combo.pack(side=tk.LEFT)
+res_combo.bind("<<ComboboxSelected>>", lambda e: save_config(path_var.get(), format_var.get(), compress_var.get(), compress_level_var.get(), res_var.get(), quality_var.get()))
+
+tk.Label(format_frame, text="Calidad:").pack(side=tk.LEFT, padx=(15, 5))
+quality_combo = ttk.Combobox(format_frame, textvariable=quality_var, values=["Máxima", "Alta", "Media", "Baja", "Mínima (32k Mono)"], state="readonly", width=14)
+quality_combo.pack(side=tk.LEFT)
+quality_combo.bind("<<ComboboxSelected>>", lambda e: save_config(path_var.get(), format_var.get(), compress_var.get(), compress_level_var.get(), res_var.get(), quality_var.get()))
+
+compress_frame = tk.Frame(main_frame)
+compress_frame.grid(row=3, column=1, sticky="w", pady=5)
+
+def on_compress_toggle():
+    if compress_var.get():
+        compress_combo.config(state="readonly")
+    else:
+        compress_combo.config(state=tk.DISABLED)
+    save_config(path_var.get(), format_var.get(), compress_var.get(), compress_level_var.get(), res_var.get(), quality_var.get())
+
+compress_check = tk.Checkbutton(compress_frame, text="Reducir tamaño (Encode)", variable=compress_var, command=on_compress_toggle)
+compress_check.pack(side=tk.LEFT)
+
+compress_combo = ttk.Combobox(compress_frame, textvariable=compress_level_var, values=["Ligero (Alta Calidad)", "Medio (Equilibrado)", "Fuerte (Menor Tamaño)"], state="readonly", width=22)
+compress_combo.pack(side=tk.LEFT, padx=5)
+compress_combo.bind("<<ComboboxSelected>>", lambda e: save_config(path_var.get(), format_var.get(), compress_var.get(), compress_level_var.get(), res_var.get()))
+
+def on_format_change(e):
+    if format_var.get() == "Video (.mp4)":
+        compress_check.config(state=tk.NORMAL)
+        res_combo.config(state="readonly")
+        on_compress_toggle()
+    else:
+        compress_check.config(state=tk.DISABLED)
+        compress_combo.config(state=tk.DISABLED)
+        res_combo.config(state=tk.DISABLED)
+    save_config(path_var.get(), format_var.get(), compress_var.get(), compress_level_var.get(), res_var.get(), quality_var.get())
+
+format_combo.bind("<<ComboboxSelected>>", on_format_change)
+if format_var.get() != "Video (.mp4)":
+    compress_check.config(state=tk.DISABLED)
+    compress_combo.config(state=tk.DISABLED)
+    res_combo.config(state=tk.DISABLED)
+else:
+    res_combo.config(state="readonly")
+    on_compress_toggle()
 
 download_btn = tk.Button(main_frame, text="Descargar", command=download_audio, bg="#4CAF50", fg="white", font=("Helvetica", 11, "bold"), cursor="hand2")
-download_btn.grid(row=3, column=0, columnspan=2, pady=25, sticky="ew", ipady=8)
+download_btn.grid(row=4, column=0, columnspan=2, pady=25, sticky="ew", ipady=8)
 
 progress_bar = ttk.Progressbar(main_frame, orient=tk.HORIZONTAL, mode='determinate')
-progress_bar.grid(row=4, column=0, columnspan=2, pady=(0, 10), sticky="ew")
+progress_bar.grid(row=5, column=0, columnspan=2, pady=(0, 10), sticky="ew")
 
-tk.Label(main_frame, textvariable=status_var, fg="#555555").grid(row=5, column=0, columnspan=2, pady=5)
+tk.Label(main_frame, textvariable=status_var, fg="#555555").grid(row=6, column=0, columnspan=2, pady=5)
 
-update_btn = tk.Button(main_frame, text="Buscar Actualizaciones", command=check_for_updates, font=("Helvetica", 9), bg="#e0e0e0", cursor="hand2")
-update_btn.grid(row=6, column=0, columnspan=2, pady=10)
+bottom_frame = tk.Frame(main_frame)
+bottom_frame.grid(row=7, column=0, columnspan=2, sticky="ew", pady=10)
+
+bottom_frame.columnconfigure(0, weight=1)
+bottom_frame.columnconfigure(1, weight=0)
+bottom_frame.columnconfigure(2, weight=1)
+
+update_btn = tk.Button(bottom_frame, text="Buscar Actualizaciones", command=check_for_updates, font=("Helvetica", 9), bg="#e0e0e0", cursor="hand2")
+update_btn.grid(row=0, column=1)
+
+def show_help():
+    help_win = tk.Toplevel(app)
+    help_win.title("Guía de Uso")
+    help_win.geometry("900x500")
+    help_win.minsize(900, 500)
+    help_win.grab_set()
+    
+    text_widget = tk.Text(help_win, wrap=tk.WORD, font=("Helvetica", 10), padx=15, pady=15, bg="#f9f9f9")
+    text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    
+    scrollbar = ttk.Scrollbar(help_win, command=text_widget.yview)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    text_widget.config(yscrollcommand=scrollbar.set)
+    
+    ayuda_texto = """Bienvenido al Descargador de YouTube
+
+1. URL del Video:
+Pega aquí el enlace de YouTube que quieres descargar.
+
+2. Carpeta:
+Elige dónde se guardará el archivo descargado.
+
+3. Formatos (Extensiones):
+• Audio (.mp3): Alta compatibilidad. Se puede reproducir en cualquier dispositivo, pero sufre una ligera pérdida de calidad por la conversión.
+• Audio (.opus): La calidad original de YouTube. Excelente para audiófilos y pesa poco, pero algunos reproductores viejos no lo soportan.
+• Audio (.m4a): Excelente calidad (AAC) sin reconversión. Ideal para dispositivos Apple (iPhone, Mac) y reproductores modernos.
+• Video (.mp4): Descarga el video con audio incluido. Es el formato de video más compatible universalmente.
+
+4. Resolución Máxima (Res Máx):
+Te permite limitar la calidad del video. Si eliges "1080p" y el video original es 4K, se descargará en 1080p para ahorrar espacio y tiempo.
+
+5. Calidad:
+Controla la calidad del audio (tanto para formatos de solo audio como para la pista de audio de un video).
+• Máxima: Descarga la mejor pista disponible sin importar el tamaño.
+• Alta: Limita el audio a ~192kbps (Excelente balance).
+• Media: Limita el audio a ~128kbps (Ocupa la mitad que la Máxima).
+• Baja: Limita el audio a 64kbps o elige la peor pista para ahorrar espacio.
+• Mínima (32k Mono): Comprime el audio a 32kbps Mono (22kHz, calidad radio AM). Reduce al máximo posible el peso del audio.
+
+6. Reducir Tamaño (Encode):
+Si marcas esta casilla, el programa recomprimirá el video usando FFmpeg para que ocupe menos espacio.
+Opciones de Encode:
+• Ligero (Alta Calidad): Comprime poco. Mantiene la mejor calidad visual.
+• Medio (Equilibrado): El mejor balance entre reducción de tamaño y calidad visual.
+• Fuerte (Menor Tamaño): Comprime al máximo. Ideal para enviar por WhatsApp o si tienes poco espacio, aunque puede verse un poco borroso."""
+    
+    text_widget.insert(tk.END, ayuda_texto)
+    text_widget.config(state=tk.DISABLED)
+
+help_btn = tk.Button(bottom_frame, text="Ayuda / Info", command=show_help, font=("Helvetica", 9), bg="#2196F3", fg="white", cursor="hand2")
+help_btn.grid(row=0, column=2, sticky="e")
 
 app.mainloop()
