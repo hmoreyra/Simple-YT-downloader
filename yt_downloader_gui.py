@@ -18,7 +18,7 @@ except ImportError:
 
 # --- CONFIGURACIÓN DE ACTUALIZACIONES ---
 GITHUB_REPO = "hmoreyra/Simple-YT-downloader"
-CURRENT_VERSION = "v1.2.0"
+CURRENT_VERSION = "v1.3.0"
 # ----------------------------------------
 
 ANSI_ESCAPE_RE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
